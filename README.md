@@ -89,8 +89,8 @@ The system maps Cartesian pixel coordinates $(x, y)$ to Generalized Coordinates 
 
 Given the pivot $P_0$, middle joint $P_1$, and end mass $P_2$:
 
-$$ \theta_1 = \operatorname{atan2}(P_{1y} - P_{0y}, P_{1x} - P_{0x}) $$
-$$ \theta_2 = \operatorname{atan2}(P_{2y} - P_{1y}, P_{2x} - P_{1x}) $$
+$$\theta_1 = \arctan2(P_{1y} - P_{0y}, P_{1x} - P_{0x})$$
+$$\theta_2 = \arctan2(P_{2y} - P_{1y}, P_{2x} - P_{1x})$$
 
 These angles form the basis for the real-time Phase Space reconstruction.
 
