@@ -62,7 +62,7 @@ Run the Tracker:
 python chaos_tracker.py
 
 
-Calibration (Critical Step):
+Calibration:
 The system initiates a 3-step click calibration to map the physical dimensions:
 
 Step 1: Click the Top Pivot (Nail/Bearing) on the camera feed.
@@ -94,7 +94,7 @@ $$\theta_2 = \arctan2(P_{2y} - P_{1y}, P_{2x} - P_{1x})$$
 
 These angles form the basis for the real-time Phase Space reconstruction.
 
-Future Work (Research Roadmap)
+Future Work:
 
 Dynamic Analysis: Comparison of experimental data with a numerical Runge-Kutta 4 (RK4) simulation to measure the Lyapunov Time (horizon of predictability).
 
