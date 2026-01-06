@@ -4,7 +4,7 @@ A computer vision system that tracks a physical double pendulum and visualizes i
 
 ## What This Does
 
-The double pendulum is one of the simplest systems that exhibits **deterministic chaos** – it follows clear physical laws, but tiny differences in starting conditions lead to completely different outcomes (the famous Butterfly Effect). While it's easy to simulate on a computer, I wanted to actually *measure* it happening in real life.
+The double pendulum is one of the simplest systems that exhibits **deterministic chaos**  it follows clear physical laws, but tiny differences in starting conditions lead to completely different outcomes (the famous Butterfly Effect). While it's easy to simulate on a computer, I wanted to actually *measure* it happening in real life.
 
 This project uses a webcam to track colored markers on a real pendulum and generates live visualizations:
 
@@ -35,7 +35,7 @@ The tracking pipeline includes:
 - Built-in position smoothing to deal with camera noise
 
 **Hardware Integration**
-- Works with DroidCam (phone as webcam) or regular USB cameras
+- Works with WebCam (phone as webcam) or regular USB cameras
 - Optimized for 60 FPS capture
 - Auto-detects camera index
 
@@ -61,7 +61,7 @@ You'll need:
 - A **neon pink** sticker on the bottom weight
 
 ### Connect Your Camera
-Either use DroidCam in USB mode (recommended for 60 FPS) or just plug in a webcam.
+Either use WebCam in USB mode (recommended for 60 FPS) or just plug in a webcam.
 
 ### Run the Tracker
 ```bash
