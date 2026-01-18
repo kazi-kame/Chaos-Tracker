@@ -2,6 +2,8 @@
 
 A computer vision system that tracks a physical double pendulum and visualizes its chaotic motion in real-time.
 
+![Dashboard Demo](dashboard_log.gif)
+
 ## What This Does
 
 The double pendulum is one of the simplest systems that exhibits **deterministic chaos**  it follows clear physical laws, but tiny differences in starting conditions lead to completely different outcomes (the famous Butterfly Effect). While it's easy to simulate on a computer, I wanted to actually *measure* it happening in real life.
@@ -113,5 +115,3 @@ Things I want to add eventually:
 ## Acknowledgments
 
 This started as a passtime coz I was bored. Big thanks to my classmate Devang Rathod for helping me out.
-
-![Dashboard Demo](dashboard_log.gif)
