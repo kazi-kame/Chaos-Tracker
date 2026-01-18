@@ -113,3 +113,5 @@ Things I want to add eventually:
 ## Acknowledgments
 
 This started as a passtime coz I was bored. Big thanks to my classmate Devang Rathod for helping me out.
+
+![Dashboard Demo](dashboard_log.gif)
