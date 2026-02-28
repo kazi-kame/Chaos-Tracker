@@ -5,8 +5,6 @@ import os
 from collections import deque
 
 # Camera Configuration
-CAMERA_INDEX = 1
-FPS = 30
 MIRROR_MODE = False
 
 # Dashboard Layout
@@ -29,8 +27,6 @@ RANGE_GREEN = (GREEN_LOWER, GREEN_UPPER)
 # Detection Parameters
 SMOOTH_WINDOW = 5
 MIN_CONTOUR_AREA = 100
-
-zoom_level = 0 
 
 # UI Color Scheme
 COLOR_BG = (0, 0, 0)
@@ -60,6 +56,21 @@ pos_buffer_1 = deque(maxlen=SMOOTH_WINDOW)
 
 time_theta_1 = deque(maxlen=TIME_WINDOW)
 time_theta_2 = deque(maxlen=TIME_WINDOW)
+
+# Omega tracking state
+prev_theta1 = None
+prev_theta2 = None
+omega1 = 0.0
+omega2 = 0.0
+OMEGA_SMOOTH = 5
+omega1_buffer = deque(maxlen=OMEGA_SMOOTH)
+omega2_buffer = deque(maxlen=OMEGA_SMOOTH)
+prev_time = None
+
+# Adaptive scaling state — tracks running max |omega| seen
+OMEGA_SCALE_WINDOW = 300  # frames to consider for max
+omega_max_buffer = deque(maxlen=OMEGA_SCALE_WINDOW)
+adaptive_scale = 1.0      # rad/s, grows to fit data
 
 print("\n" + "="*60)
 print("DOUBLE PENDULUM CHAOS TRACKER - HSV Color Detection")
@@ -168,9 +179,8 @@ def draw_phase_grid(img):
     cv2.line(img, (0, cy), (GRAPH_WIDTH, cy), COLOR_AXIS, 2)
     cv2.line(img, (cx, 0), (cx, GRAPH_HEIGHT_TOP), COLOR_AXIS, 2)
     
-    label = "PHASE SPACE: CHAOS" if zoom_level == 0 else "PHASE SPACE: SMALL ANGLE"
-    cv2.putText(img, label, (10, 20), cv2.FONT_HERSHEY_PLAIN, 1, COLOR_TEXT, 1)
-    cv2.putText(img, "X: Theta 1 | Y: Theta 2", (10, GRAPH_HEIGHT_TOP - 10), 
+    cv2.putText(img, "PHASE SPACE: \u03c9\u2081 vs \u03c9\u2082", (10, 20), cv2.FONT_HERSHEY_PLAIN, 1, COLOR_TEXT, 1)
+    cv2.putText(img, "X: Omega 1 | Y: Omega 2", (10, GRAPH_HEIGHT_TOP - 10), 
                 cv2.FONT_HERSHEY_PLAIN, 0.8, COLOR_AXIS, 1)
 
 def draw_time_grid(img):
@@ -245,7 +255,6 @@ print("="*60)
 print("Controls:")
 print("  L - Start/Stop Recording")
 print("  C - Clear trails and reset graphs")
-print("  Z - Toggle zoom level (chaos view / small angle view)")
 print("  Q - Quit")
 print("\nCalibration Steps:")
 print("  1. Click on the top pivot point")
@@ -354,22 +363,56 @@ while True:
             time_theta_1.append(theta1)
             time_theta_2.append(theta2)
 
-            current_scale = 1.2 if zoom_level == 0 else 0.5
-            
-            scale_factor = (GRAPH_WIDTH / 2) / (math.pi * current_scale)
-            gx = int((GRAPH_WIDTH // 2) + (theta1 * scale_factor))
-            gy = int((GRAPH_HEIGHT_TOP // 2) - (theta2 * scale_factor))
+            # Timestamped dt
+            now = time.perf_counter()
+            if prev_time is not None:
+                dt = now - prev_time
+            else:
+                dt = 1.0 / max(actual_fps, 1)
+            prev_time = now
 
-            gx = np.clip(gx, 0, GRAPH_WIDTH - 1)
-            gy = np.clip(gy, 0, GRAPH_HEIGHT_TOP - 1)
+            # Compute angular velocities via finite difference (rad/s), smoothed
+            if prev_theta1 is not None and prev_theta2 is not None and dt > 0:
+                raw_omega1 = theta1 - prev_theta1
+                raw_omega2 = theta2 - prev_theta2
+                # Wrap to [-pi, pi] to handle angle discontinuities
+                raw_omega1 = (raw_omega1 + math.pi) % (2 * math.pi) - math.pi
+                raw_omega2 = (raw_omega2 + math.pi) % (2 * math.pi) - math.pi
+                omega1_buffer.append(raw_omega1 / dt)
+                omega2_buffer.append(raw_omega2 / dt)
 
-            if prev_theta:
-                dist = math.hypot(gx - prev_theta[0], gy - prev_theta[1])
-                if dist < GRAPH_WIDTH / 3:
-                    cv2.line(phase_canvas, prev_theta, (gx, gy), COLOR_PHASE, 1)
-            
-            prev_theta = (gx, gy)
-            current_phase_head = (gx, gy)
+            prev_theta1 = theta1
+            prev_theta2 = theta2
+
+            if len(omega1_buffer) > 0:
+                omega1 = float(np.mean(omega1_buffer))
+                omega2 = float(np.mean(omega2_buffer))
+
+                # Adaptive scaling: track running max and pad by 20%
+                omega_max_buffer.append(max(abs(omega1), abs(omega2)))
+                adaptive_scale = max(omega_max_buffer) * 1.2
+                adaptive_scale = max(adaptive_scale, 0.5)  # floor to avoid divide-by-zero at rest
+
+                scale_factor = (GRAPH_WIDTH / 2) / adaptive_scale
+
+                gx = int((GRAPH_WIDTH // 2) + (omega1 * scale_factor))
+                gy = int((GRAPH_HEIGHT_TOP // 2) - (omega2 * scale_factor))
+
+                gx = np.clip(gx, 0, GRAPH_WIDTH - 1)
+                gy = np.clip(gy, 0, GRAPH_HEIGHT_TOP - 1)
+
+                if prev_theta:
+                    dist = math.hypot(gx - prev_theta[0], gy - prev_theta[1])
+                    if dist < GRAPH_WIDTH / 3:
+                        cv2.line(phase_canvas, prev_theta, (gx, gy), COLOR_PHASE, 1)
+                
+                prev_theta = (gx, gy)
+                current_phase_head = (gx, gy)
+
+                # Overlay current scale on phase canvas so you know the axis range
+                scale_label = f"scale: +/-{adaptive_scale:.1f} rad/s"
+                cv2.putText(phase_canvas, scale_label, (GRAPH_WIDTH - 200, 20),
+                            cv2.FONT_HERSHEY_PLAIN, 0.9, COLOR_TEXT, 1)
 
     draw_time_series(time_canvas, time_theta_1, time_theta_2)
 
@@ -425,7 +468,7 @@ while True:
         if not recording:
             fn = f'dashboard_log_{file_counter}.avi'
             fourcc = cv2.VideoWriter_fourcc(*'XVID')
-            out = cv2.VideoWriter(fn, fourcc, FPS, (DASHBOARD_WIDTH, DASHBOARD_HEIGHT))
+            out = cv2.VideoWriter(fn, fourcc, actual_fps, (DASHBOARD_WIDTH, DASHBOARD_HEIGHT))
             recording = True
             print(f"Recording: {fn}")
         else:
@@ -441,17 +484,16 @@ while True:
         time_theta_1.clear()
         time_theta_2.clear()
         prev_theta = None
+        prev_theta1 = None
+        prev_theta2 = None
+        prev_time = None
+        omega1_buffer.clear()
+        omega2_buffer.clear()
+        omega_max_buffer.clear()
+        adaptive_scale = 1.0
         pos_buffer_0.clear()
         pos_buffer_1.clear()
         print("Cleared.")
-
-    if key == ord('z'):
-        zoom_level = 1 - zoom_level 
-        phase_canvas = np.zeros((GRAPH_HEIGHT_TOP, GRAPH_WIDTH, 3), dtype=np.uint8)
-        draw_phase_grid(phase_canvas) 
-        prev_theta = None
-        mode = "Small Angle" if zoom_level == 1 else "Chaos"
-        print(f"Zoom: {mode}")
 
     if key == ord('q'):
         break
