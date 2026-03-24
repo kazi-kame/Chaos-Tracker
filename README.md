@@ -47,8 +47,8 @@ The tracking pipeline includes:
 
 ### Clone the Repository
 ```bash
-git clone https://github.com/YourUsername/Double-Pendulum-Chaos-Tracker.git
-cd Double-Pendulum-Chaos-Tracker
+git clone https://github.com/kazi-kame/Double-Pendulum-Chaos-Tracker.git
+cd Chaos-Tracker
 ```
 
 ### Install Dependencies
